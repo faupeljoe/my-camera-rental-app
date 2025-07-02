@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+// Note: jsPDF and jspdf-autotable are now loaded from a CDN via a script loader effect.
 
 // --- STYLES ---
-// By embedding the styles directly, we avoid issues with CSS file resolution.test
 const Style = () => (
     <style>{`
         /* --- FONT DEFINITIONS --- */
@@ -52,7 +52,7 @@ const Style = () => (
             box-shadow: 0 0 15px rgba(6, 182, 212, 0.1), 0 0 30px rgba(6, 182, 212, 0.1);
             border-radius: 0.75rem; /* rounded-xl */
             padding: 2rem;
-            max-width: 56rem; /* Tailwind's max-w-4xl is 56rem */
+            max-width: 56rem; 
             width: 100%;
             margin: 2rem 0;
             border: 1px solid #374151; /* gray-700 */
@@ -90,9 +90,9 @@ const Style = () => (
 
         /* Message Box */
         .message-box {
-            background-color: rgba(22, 163, 74, 0.2); /* bg-cyan-900/50 */
-            border: 1px solid #047857; /* border-cyan-700 */
-            color: #a7f3d0; /* text-cyan-200 */
+            background-color: rgba(22, 163, 74, 0.2); 
+            border: 1px solid #047857; 
+            color: #a7f3d0; 
             padding: 0.75rem 1rem;
             border-radius: 0.25rem;
             margin-bottom: 1rem;
@@ -106,6 +106,48 @@ const Style = () => (
             border-radius: 0.5rem;
             box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
             border: 1px solid #374151; /* gray-700 */
+        }
+        
+        /* Client Info & Input Styling */
+        .client-info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        @media (min-width: 768px) {
+            .client-info-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group.full-width {
+            grid-column: 1 / -1;
+        }
+        .input-group label {
+            display: block;
+            color: #d1d5db;
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .input-group input {
+            appearance: none;
+            border: 1px solid #4b5563;
+            background-color: #374151;
+            border-radius: 0.5rem;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            color: #e5e7eb;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: transparent;
+            box-shadow: 0 0 0 2px #22d3ee;
         }
 
 
@@ -123,21 +165,21 @@ const Style = () => (
         }
 
         .btn:disabled {
-            background-color: #374151; /* gray-700 */
-            color: #9ca3af; /* gray-400 */
+            background-color: #374151;
+            color: #9ca3af;
             cursor: not-allowed;
             transform: none;
         }
 
         .add-sample-btn {
-            background-color: #22c55e; /* green-500 */
+            background-color: #22c55e;
             color: white;
         }
         .add-sample-btn:hover:not(:disabled) {
-            background-color: #16a34a; /* green-600 */
+            background-color: #16a34a;
         }
         .add-sample-btn:focus:not(:disabled) {
-            box-shadow: 0 0 0 2px #4ade80; /* ring-green-400 */
+            box-shadow: 0 0 0 2px #4ade80;
         }
         .sample-data-section {
             margin-bottom: 1.5rem;
@@ -145,32 +187,32 @@ const Style = () => (
         }
         .sample-data-section p {
             font-size: 0.875rem;
-            color: #6b7280; /* gray-500 */
+            color: #6b7280;
             margin-top: 0.5rem;
         }
 
         .add-to-cart-btn {
             margin-top: 1rem;
-            background-color: #0891b2; /* cyan-600 */
+            background-color: #0891b2;
             color: white;
             width: 100%;
         }
         .add-to-cart-btn:hover {
-            background-color: #0e7490; /* cyan-700 */
+            background-color: #0e7490;
         }
         .add-to-cart-btn:focus {
-            box-shadow: 0 0 0 2px #06b6d4; /* ring-cyan-500 */
+            box-shadow: 0 0 0 2px #06b6d4;
         }
 
         .get-quote-btn {
-            background-color: #06b6d4; /* cyan-500 */
+            background-color: #06b6d4;
             color: #000000;
             padding: 0.75rem 2rem;
             font-size: 1.125rem;
             box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.2), 0 4px 6px -2px rgba(6, 182, 212, 0.1);
         }
         .get-quote-btn:hover {
-            background-color: #0891b2; /* cyan-600 */
+            background-color: #0891b2;
             transform: scale(1.05);
         }
         .get-quote-section {
@@ -178,13 +220,13 @@ const Style = () => (
         }
 
         .remove-btn {
-            background-color: #ef4444; /* red-500 */
+            background-color: #ef4444;
             color: white;
             padding: 0.5rem;
-            border-radius: 9999px; /* full */
+            border-radius: 9999px;
         }
         .remove-btn:hover {
-            background-color: #dc2626; /* red-600 */
+            background-color: #dc2626;
         }
         .remove-btn svg {
             height: 1.25rem;
@@ -194,42 +236,42 @@ const Style = () => (
         /* Date Selector */
         .date-selector {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
             gap: 1rem;
-            align-items: center;
+            align-items: flex-end;
         }
-        .date-input-group {
-            flex: 1;
-            width: 100%;
+        .date-input-group, .time-input-group {
+            flex: 1 1 150px;
         }
-        .date-input-group label {
+        .date-input-group label, .time-input-group label {
             display: block;
-            color: #d1d5db; /* gray-300 */
+            color: #d1d5db;
             font-size: 0.875rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
         }
-        .date-input-group input {
+        .date-input-group input, .time-input-group input {
             appearance: none;
-            border: 1px solid #4b5563; /* gray-600 */
-            background-color: #374151; /* gray-700 */
+            border: 1px solid #4b5563;
+            background-color: #374151;
             border-radius: 0.5rem;
             width: 100%;
             padding: 0.5rem 0.75rem;
-            color: #e5e7eb; /* gray-200 */
+            color: #e5e7eb;
             line-height: 1.5;
+            box-sizing: border-box;
         }
-        .date-input-group input:focus {
+        .date-input-group input:focus, .time-input-group input:focus {
             outline: none;
             border-color: transparent;
-            box-shadow: 0 0 0 2px #22d3ee; /* ring-cyan-400 */
+            box-shadow: 0 0 0 2px #22d3ee;
         }
         .rental-days-display {
-            flex-shrink: 0;
+            flex: 1 1 100%;
             text-align: center;
             margin-top: 1rem;
         }
-        .rental-days-display p {
+        .rental-days-display p, .billing-explanation {
             font-size: 1rem;
             font-weight: 500;
             color: #d1d5db; /* gray-300 */
@@ -239,13 +281,19 @@ const Style = () => (
             color: #22d3ee; /* cyan-400 */
             font-size: 1.125rem;
         }
+        .billing-explanation {
+            font-style: italic;
+            font-size: 0.875rem;
+            color: #9ca3af;
+            margin-top: 0.5rem;
+        }
 
         /* Equipment Catalog */
         .equipment-catalog {
             margin-bottom: 2rem;
         }
         .loading-text {
-            color: #9ca3af; /* gray-400 */
+            color: #9ca3af;
         }
         .equipment-grid {
             display: grid;
@@ -253,11 +301,11 @@ const Style = () => (
             gap: 1.5rem;
         }
         .equipment-card {
-            background-color: #1f2937; /* gray-800 */
+            background-color: #1f2937;
             padding: 1.25rem;
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -1px rgba(0,0,0,0.3);
-            border: 1px solid #374151; /* gray-700 */
+            border: 1px solid #374151;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -276,29 +324,29 @@ const Style = () => (
         .equipment-card h3 {
             font-size: 1.25rem;
             font-weight: 600;
-            color: #f9fafb; /* gray-100 */
+            color: #f9fafb;
             margin-bottom: 0.5rem;
         }
         .equipment-card .description {
             font-size: 0.875rem;
-            color: #9ca3af; /* gray-400 */
+            color: #9ca3af;
             margin-bottom: 0.5rem;
             min-height: 40px;
         }
         .equipment-card .price {
             font-size: 1.125rem;
             font-weight: 500;
-            color: #22d3ee; /* cyan-400 */
+            color: #22d3ee;
         }
         .equipment-card .replacement-cost {
             font-size: 0.75rem;
-            color: #6b7280; /* gray-500 */
+            color: #6b7280;
             margin-top: 0.25rem;
         }
         .package-includes {
             margin-top: 0.5rem;
             font-size: 0.875rem;
-            color: #d1d5db; /* gray-300 */
+            color: #d1d5db;
         }
         .package-includes p {
             font-weight: 600;
@@ -306,7 +354,7 @@ const Style = () => (
         .package-includes ul {
             list-style: disc;
             list-style-position: inside;
-            color: #9ca3af; /* gray-400 */
+            color: #9ca3af;
             padding-left: 0;
             margin-top: 0.25rem;
         }
@@ -321,21 +369,21 @@ const Style = () => (
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background-color: #111827; /* gray-900 */
+            background-color: #111827;
             padding: 1rem;
             border-radius: 0.5rem;
-            border: 1px solid #374151; /* gray-700 */
+            border: 1px solid #374151;
         }
         .cart-item-details {
             flex: 1;
         }
         .cart-item-details h4 {
             font-weight: 600;
-            color: #f9fafb; /* gray-100 */
+            color: #f9fafb;
         }
         .cart-item-details p {
             font-size: 0.875rem;
-            color: #9ca3af; /* gray-400 */
+            color: #9ca3af;
         }
         .cart-item-controls {
             display: flex;
@@ -345,8 +393,8 @@ const Style = () => (
         .cart-item-controls input {
             width: 4rem;
             padding: 0.5rem;
-            border: 1px solid #4b5563; /* gray-600 */
-            background-color: #374151; /* gray-700 */
+            border: 1px solid #4b5563;
+            background-color: #374151;
             border-radius: 0.375rem;
             text-align: center;
             color: white;
@@ -355,19 +403,12 @@ const Style = () => (
             text-align: right;
             font-size: 1.5rem;
             font-weight: 700;
-            color: #67e8f9; /* cyan-300 */
+            color: #67e8f9;
             margin-top: 1rem;
         }
 
         /* Responsive Grid Layout */
         @media (min-width: 768px) {
-            .date-selector {
-                flex-direction: row;
-            }
-            .rental-days-display {
-                text-align: left;
-                margin-top: 0;
-            }
             .equipment-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -397,35 +438,122 @@ const firebaseConfig = {
     measurementId: "G-1C883VZPLV"
 };
 
-// Safety check for firebaseConfig
-if (!firebaseConfig.projectId || !firebaseConfig.apiKey || !firebaseConfig.authDomain) {
-    console.error("Firebase configuration is incomplete.");
-}
+// --- Pricing Logic ---
+const calculateBilledDays = (start, end) => {
+    if (!start || !end) return { billedDays: 0, explanation: 'Please select a rental period.' };
 
-// Utility function to format dates
-const formatDate = (date) => {
-    return date ? new Date(date).toLocaleDateString() : 'N/A';
+    const startDate = new Date(start + 'T00:00:00');
+    const endDate = new Date(end + 'T00:00:00');
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+        return { billedDays: 0, explanation: 'Invalid date range.' };
+    }
+
+    const totalPossessionDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    if (totalPossessionDays <= 1) {
+        return { billedDays: 1, explanation: '1 Day Rate: Pickup and return on the same day.' };
+    }
+
+    if (totalPossessionDays >= 22 && totalPossessionDays <= 31) {
+        return { billedDays: 12, explanation: `Monthly Rate Applied: Billed for 12 days on a ${totalPossessionDays}-day rental.` };
+    }
+    
+    if (totalPossessionDays >= 6 && totalPossessionDays <= 7) {
+        return { billedDays: 4, explanation: `Weekly Rate Applied: Billed for 4 days on a ${totalPossessionDays}-day rental.` };
+    }
+    
+    let billableDays = Math.max(0, totalPossessionDays - 2);
+    
+    let explanation = `Standard Rate: Billed for ${billableDays} shoot day(s) on a ${totalPossessionDays}-day rental.`;
+    
+    const shootDays = [];
+    if (totalPossessionDays > 2) {
+        for (let d = new Date(startDate.getTime() + 86400000); d < endDate; d.setDate(d.getDate() + 1)) {
+            shootDays.push(new Date(d));
+        }
+    }
+
+    const weekends = new Set();
+    shootDays.forEach(day => {
+        if (day.getDay() === 6) { // Saturday
+             const sunday = new Date(day);
+             sunday.setDate(sunday.getDate() + 1);
+             const sundayInShootDays = shootDays.some(d => d.getTime() === sunday.getTime());
+             if(sundayInShootDays){
+                  weekends.add(day.toDateString());
+             }
+        }
+    });
+    
+    if (weekends.size > 0) {
+        billableDays -= weekends.size;
+        explanation = `Weekend Discount Applied: Billed for ${billableDays} shoot day(s) on a ${totalPossessionDays}-day rental.`;
+    }
+
+    if(totalPossessionDays > 1 && billableDays < 1){
+        billableDays = 1;
+        explanation = `Standard Rate: Billed for 1 shoot day on a ${totalPossessionDays}-day rental.`
+    }
+
+    return { billedDays: billableDays, explanation };
 };
+
 
 // Main App Component
 const App = () => {
     // Firebase states
     const [db, setDb] = useState(null);
-    const [auth, setAuth] = useState(null);
     const [userId, setUserId] = useState('loading...');
     const [isAuthReady, setIsAuthReady] = useState(false);
+    const [scriptsLoaded, setScriptsLoaded] = useState(false);
 
     // Application states
+    const [companyName, setCompanyName] = useState('');
+    const [userName, setUserName] = useState('');
+    const [address, setAddress] = useState('');
+    const [email, setEmail] = useState('');
+    
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [pickupTime, setPickupTime] = useState('10:00');
+    const [dropoffTime, setDropoffTime] = useState('17:00');
+
     const [equipmentList, setEquipmentList] = useState([]);
     const [cart, setCart] = useState([]);
     const [message, setMessage] = useState('');
+    
+    const { billedDays, explanation } = calculateBilledDays(startDate, endDate);
 
-    // Calculate rental days
-    const rentalDays = startDate && endDate
-        ? Math.max(0, (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24) + 1)
-        : 0;
+
+    // --- Script Loader for PDF Libraries ---
+    useEffect(() => {
+        const loadScript = (src, id) => {
+            return new Promise((resolve, reject) => {
+                if (document.getElementById(id)) {
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = src;
+                script.id = id;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error(`Script load error for ${src}`));
+                document.body.appendChild(script);
+            });
+        };
+
+        loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", "jspdf-script")
+            .then(() => {
+                return loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js", "jspdf-autotable-script");
+            })
+            .then(() => {
+                setScriptsLoaded(true);
+            })
+            .catch(error => console.error("Could not load PDF scripts", error));
+        
+    }, []);
+
 
     // Initialize Firebase and handle authentication
     useEffect(() => {
@@ -435,7 +563,6 @@ const App = () => {
             const firebaseAuth = getAuth(firebaseApp);
 
             setDb(firestoreDb);
-            setAuth(firebaseAuth);
 
             const unsubscribeAuth = onAuthStateChanged(firebaseAuth, async (user) => {
                 if (user) {
@@ -521,22 +648,117 @@ const App = () => {
         ));
     };
 
-    const handleGetQuote = () => {
+    const handleGetQuote = async () => {
+        if (!scriptsLoaded) {
+            setMessage("PDF generation library is still loading. Please try again in a moment.");
+            return;
+        }
+        if (!companyName || !userName || !address || !email) {
+            setMessage('Please fill out all client information fields.');
+            return;
+        }
         if (!startDate || !endDate) {
-            setMessage('Please select both start and end dates.');
+            setMessage('Please select both pickup and dropoff dates.');
             return;
         }
         if (cart.length === 0) {
             setMessage('Your cart is empty. Add some equipment first!');
             return;
         }
-        console.log("Generating Quote for:", { rentalDays, cart });
-        setMessage('Quote generated! (Check console for data - PDF download functionality to be added)');
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.get('height');
+        const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.get('width');
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.text("Lefty's Camera Rental", pageWidth - 15, 20, { align: 'right' });
+        
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text("123 Film Row, Suite 100", pageWidth - 15, 26, { align: 'right' });
+        doc.text("Hollywood, CA 90028", pageWidth - 15, 31, { align: 'right' });
+        doc.text("Phone: (310) 555-1234", pageWidth - 15, 36, { align: 'right' });
+        doc.text("contact@leftyscamera.com", pageWidth - 15, 41, { align: 'right' });
+
+        doc.setFontSize(14);
+        doc.setFont('Helvetica', 'bold');
+        doc.text("INVOICE TO:", 15, 55);
+        
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text(companyName, 15, 62);
+        doc.text(`Attn: ${userName}`, 15, 67);
+        doc.text(address, 15, 72);
+        doc.text(email, 15, 77);
+
+        doc.autoTable({
+            startY: 85,
+            head: [['Pickup', 'Return', 'Billed Days']],
+            body: [[ `${startDate} @ ${pickupTime}`, `${endDate} @ ${dropoffTime}`, `${billedDays} Days` ]],
+            theme: 'grid',
+            styles: { fontSize: 10, cellPadding: 2 },
+            headStyles: { fillColor: [22, 160, 133] },
+        });
+
+        const tableColumn = ["Qty", "Description", "Serial(s)", "Rate/Day", "Replace", "Total"];
+        const tableRows = [];
+        let subtotal = 0;
+
+        cart.forEach(cartItem => {
+            const item = cartItem.item;
+            const lineTotal = item.baseRentalRatePerDay * billedDays * cartItem.quantity;
+            subtotal += lineTotal;
+            const rowData = [ cartItem.quantity, item.name, item.serialNumbers ? item.serialNumbers.join(', ') : 'N/A', `$${item.baseRentalRatePerDay.toFixed(2)}`, `$${item.replacementCost.toFixed(2)}`, `$${lineTotal.toFixed(2)}`];
+            tableRows.push(rowData);
+        });
+
+        doc.autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: doc.autoTable.previous.finalY + 10,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 128, 185] },
+            styles: { fontSize: 9 },
+        });
+
+        let finalY = doc.autoTable.previous.finalY;
+
+        if (explanation) {
+            doc.setFontSize(9);
+            doc.setFont('Helvetica', 'italic');
+            doc.text(`Pricing Note: ${explanation}`, 15, finalY + 10);
+            finalY += 5;
+        }
+
+        const tax = subtotal * 0.0825;
+        const total = subtotal + tax;
+        
+        doc.setFontSize(10);
+        doc.setFont('Helvetica', 'normal');
+        doc.text("Subtotal:", 150, finalY + 10, { align: 'right' });
+        doc.text(`$${subtotal.toFixed(2)}`, pageWidth - 15, finalY + 10, { align: 'right' });
+        
+        doc.text("Tax (8.25%):", 150, finalY + 15, { align: 'right' });
+        doc.text(`$${tax.toFixed(2)}`, pageWidth - 15, finalY + 15, { align: 'right' });
+        
+        doc.setFont('Helvetica', 'bold');
+        doc.text("TOTAL:", 150, finalY + 20, { align: 'right' });
+        doc.text(`$${total.toFixed(2)}`, pageWidth - 15, finalY + 20, { align: 'right' });
+        
+        doc.setFontSize(8);
+        doc.text("Thank you for your business! Please make all checks payable to Lefty's Camera Rental.", 15, pageHeight - 10);
+        
+        doc.save('Lefty_Rental_Quote.pdf');
+        
+        setMessage('Quote PDF has been downloaded.');
     };
 
     const calculateCartTotal = () => {
         return cart.reduce((total, cartItem) => {
-            const itemCost = cartItem.item.baseRentalRatePerDay * rentalDays * cartItem.quantity;
+            const itemCost = cartItem.item.baseRentalRatePerDay * billedDays * cartItem.quantity;
             return total + itemCost;
         }, 0);
     };
@@ -594,29 +816,50 @@ const App = () => {
                     </div>
 
                     <div className="section-container">
-                        <h2>Select Rental Dates</h2>
+                        <h2>Client Information</h2>
+                        <div className="client-info-grid">
+                            <div className="input-group">
+                                <label htmlFor="companyName">Company Name</label>
+                                <input type="text" id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+                            </div>
+                             <div className="input-group">
+                                <label htmlFor="userName">Your Name</label>
+                                <input type="text" id="userName" value={userName} onChange={(e) => setUserName(e.target.value)} />
+                            </div>
+                             <div className="input-group full-width">
+                                <label htmlFor="address">Address</label>
+                                <input type="text" id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+                            </div>
+                             <div className="input-group full-width">
+                                <label htmlFor="email">Email</label>
+                                <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div className="section-container">
+                        <h2>Rental Period</h2>
                         <div className="date-selector">
                             <div className="date-input-group">
-                                <label htmlFor="startDate">Start Date</label>
-                                <input
-                                    type="date"
-                                    id="startDate"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                />
+                                <label htmlFor="pickupDate">Pickup Date</label>
+                                <input type="date" id="pickupDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                            </div>
+                             <div className="time-input-group">
+                                <label htmlFor="pickupTime">Pickup Time</label>
+                                <input type="time" id="pickupTime" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} />
                             </div>
                             <div className="date-input-group">
-                                <label htmlFor="endDate">End Date</label>
-                                <input
-                                    type="date"
-                                    id="endDate"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    min={startDate}
-                                />
+                                <label htmlFor="dropoffDate">Dropoff Date</label>
+                                <input type="date" id="dropoffDate" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={startDate}/>
+                            </div>
+                             <div className="time-input-group">
+                                <label htmlFor="dropoffTime">Dropoff Time</label>
+                                <input type="time" id="dropoffTime" value={dropoffTime} onChange={(e) => setDropoffTime(e.target.value)} />
                             </div>
                             <div className="rental-days-display">
-                                <p>Rental Days: <span>{rentalDays}</span></p>
+                                <p>Billed Days: <span>{billedDays}</span></p>
+                                {explanation && <p className="billing-explanation">{explanation}</p>}
                             </div>
                         </div>
                     </div>
@@ -664,7 +907,7 @@ const App = () => {
                                     <div key={cartItem.item.id} className="cart-item">
                                         <div className="cart-item-details">
                                             <h4>{cartItem.item.name}</h4>
-                                            <p>${cartItem.item.baseRentalRatePerDay} / day x {rentalDays} days = ${(cartItem.item.baseRentalRatePerDay * rentalDays).toFixed(2)}</p>
+                                            <p>${cartItem.item.baseRentalRatePerDay} / day x {billedDays} days = ${(cartItem.item.baseRentalRatePerDay * billedDays).toFixed(2)}</p>
                                             <p>Replacement Cost: ${cartItem.item.replacementCost}</p>
                                         </div>
                                         <div className="cart-item-controls">
@@ -691,8 +934,8 @@ const App = () => {
                     </div>
 
                     <div className="get-quote-section">
-                        <button className="btn get-quote-btn" onClick={handleGetQuote}>
-                            Get Quote (Download Invoice)
+                        <button className="btn get-quote-btn" onClick={handleGetQuote} disabled={!scriptsLoaded}>
+                            {scriptsLoaded ? 'Get Quote (Download Invoice)' : 'Loading PDF Tools...'}
                         </button>
                     </div>
                 </div>
