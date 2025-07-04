@@ -666,17 +666,22 @@ const App = () => {
             return;
         }
         
-        const { jsPDF } = window.jspdf;
+        const { jsPDF } = window.jspdf; // This is the beginning of the PDF quote configuration.
         const doc = new jsPDF();
         
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.get('height');
         const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.get('width');
 
-        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(255, 255, 255); // white text for pdf document
+
+        doc.setFillColor(17, 24, 39); // RGB color for PDF background
+        doc.rect(0, 0, pageWidth, pageHeight, 'F'); // 'F' stands for fill
+
+        doc.setFont('Nitti-Normal', 'normal');
         doc.setFontSize(20);
         doc.text("Lefty's Camera Rental", pageWidth - 15, 20, { align: 'right' });
         
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Nitti-Normal', 'normal');
         doc.setFontSize(10);
         doc.text("123 Film Row, Suite 100", pageWidth - 15, 26, { align: 'right' });
         doc.text("Hollywood, CA 90028", pageWidth - 15, 31, { align: 'right' });
@@ -684,10 +689,10 @@ const App = () => {
         doc.text("contact@leftyscamera.com", pageWidth - 15, 41, { align: 'right' });
 
         doc.setFontSize(14);
-        doc.setFont('Helvetica', 'bold');
+        doc.setFont('Nitti-Normal', 'bold');
         doc.text("INVOICE TO:", 15, 55);
         
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Nitti-Normal', 'normal');
         doc.setFontSize(11);
         doc.text(companyName, 15, 62);
         doc.text(`Attn: ${userName}`, 15, 67);
@@ -700,7 +705,7 @@ const App = () => {
             body: [[ `${startDate} @ ${pickupTime}`, `${endDate} @ ${dropoffTime}`, `${billedDays} Days` ]],
             theme: 'grid',
             styles: { fontSize: 10, cellPadding: 2 },
-            headStyles: { fillColor: [22, 160, 133] },
+            headStyles: { fillColor: [55, 65, 81] },
         });
 
         const tableColumn = ["Qty", "Description", "Serial(s)", "Rate/Day", "Replace", "Total"];
@@ -720,7 +725,7 @@ const App = () => {
             body: tableRows,
             startY: doc.autoTable.previous.finalY + 10,
             theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] },
+            headStyles: { fillColor: [55, 65, 81] },
             styles: { fontSize: 9 },
         });
 
@@ -728,7 +733,7 @@ const App = () => {
 
         if (explanation) {
             doc.setFontSize(9);
-            doc.setFont('Helvetica', 'italic');
+            doc.setFont('Nitti-Normal', 'italic');
             doc.text(`Pricing Note: ${explanation}`, 15, finalY + 10);
             finalY += 5;
         }
@@ -737,14 +742,14 @@ const App = () => {
         const total = subtotal + tax;
         
         doc.setFontSize(10);
-        doc.setFont('Helvetica', 'normal');
+        doc.setFont('Nitti-Normal', 'normal');
         doc.text("Subtotal:", 150, finalY + 10, { align: 'right' });
         doc.text(`$${subtotal.toFixed(2)}`, pageWidth - 15, finalY + 10, { align: 'right' });
         
         doc.text("Tax (8.25%):", 150, finalY + 15, { align: 'right' });
         doc.text(`$${tax.toFixed(2)}`, pageWidth - 15, finalY + 15, { align: 'right' });
         
-        doc.setFont('Helvetica', 'bold');
+        doc.setFont('Nitti-Normal', 'bold');
         doc.text("TOTAL:", 150, finalY + 20, { align: 'right' });
         doc.text(`$${total.toFixed(2)}`, pageWidth - 15, finalY + 20, { align: 'right' });
         
@@ -754,7 +759,7 @@ const App = () => {
         doc.save('Lefty_Rental_Quote.pdf');
         
         setMessage('Quote PDF has been downloaded.');
-    };
+    }; //This is the end of the PDF Quote configuration.
 
     const calculateCartTotal = () => {
         return cart.reduce((total, cartItem) => {
