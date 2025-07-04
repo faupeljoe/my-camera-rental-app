@@ -1,10 +1,14 @@
+
+// -----------------------------------------------------------
+// Imports & Setup
+// -----------------------------------------------------------
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 // Note: jsPDF and jspdf-autotable are now loaded from a CDN via a script loader effect.
 
-// --- STYLES ---
+// --- STYLES ---------------------------------------------------------------------
 const Style = () => (
     <style>{`
         /* --- FONT DEFINITIONS --- */
@@ -438,35 +442,44 @@ const firebaseConfig = {
     measurementId: "G-1C883VZPLV"
 };
 
-// --- Pricing Logic ---
+// --- Pricing Logic --------------------------------------------
+// Calculates how many days to bill based on rental period,
+// applying 1-day, weekly, monthly, and weekend-discount rules.
 const calculateBilledDays = (start, end) => {
     if (!start || !end) return { billedDays: 0, explanation: 'Please select a rental period.' };
 
     const startDate = new Date(start + 'T00:00:00');
     const endDate = new Date(end + 'T00:00:00');
-    
+
+    // Validate dates
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
         return { billedDays: 0, explanation: 'Invalid date range.' };
     }
 
+    // Inclusive day count
     const totalPossessionDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
+    // 1-day same-day rate
     if (totalPossessionDays <= 1) {
         return { billedDays: 1, explanation: '1 Day Rate: Pickup and return on the same day.' };
     }
 
+    // Monthly rate (22–31 days billed as 12)
     if (totalPossessionDays >= 22 && totalPossessionDays <= 31) {
         return { billedDays: 12, explanation: `Monthly Rate Applied: Billed for 12 days on a ${totalPossessionDays}-day rental.` };
     }
     
+    // Weekly rate (6–7 days billed as 4)
     if (totalPossessionDays >= 6 && totalPossessionDays <= 7) {
         return { billedDays: 4, explanation: `Weekly Rate Applied: Billed for 4 days on a ${totalPossessionDays}-day rental.` };
     }
     
+    // Standard: subtract 2 (travel/setup days)
     let billableDays = Math.max(0, totalPossessionDays - 2);
     
     let explanation = `Standard Rate: Billed for ${billableDays} shoot day(s) on a ${totalPossessionDays}-day rental.`;
     
+    // Identify full weekend days inside rental for discount
     const shootDays = [];
     if (totalPossessionDays > 2) {
         for (let d = new Date(startDate.getTime() + 86400000); d < endDate; d.setDate(d.getDate() + 1)) {
@@ -491,6 +504,7 @@ const calculateBilledDays = (start, end) => {
         explanation = `Weekend Discount Applied: Billed for ${billableDays} shoot day(s) on a ${totalPossessionDays}-day rental.`;
     }
 
+    // Ensure at least one day billed
     if(totalPossessionDays > 1 && billableDays < 1){
         billableDays = 1;
         explanation = `Standard Rate: Billed for 1 shoot day on a ${totalPossessionDays}-day rental.`
@@ -500,7 +514,7 @@ const calculateBilledDays = (start, end) => {
 };
 
 
-// Main App Component
+// -----Main App Component-------------------------------------
 const App = () => {
     // Firebase states
     const [db, setDb] = useState(null);
@@ -508,21 +522,26 @@ const App = () => {
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [scriptsLoaded, setScriptsLoaded] = useState(false);
 
-    // Application states
+    // ------------ User / Client Info States -------------
     const [companyName, setCompanyName] = useState('');
     const [userName, setUserName] = useState('');
     const [address, setAddress] = useState('');
     const [email, setEmail] = useState('');
-    
+
+    // ------------ Rental Period States ---------------
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [pickupTime, setPickupTime] = useState('10:00');
     const [dropoffTime, setDropoffTime] = useState('17:00');
 
+    // ------------ Equipment & Cart States -------------
     const [equipmentList, setEquipmentList] = useState([]);
     const [cart, setCart] = useState([]);
+
+    // UI feedback message
     const [message, setMessage] = useState('');
-    
+
+    // Derived values: billed days + explanation text
     const { billedDays, explanation } = calculateBilledDays(startDate, endDate);
 
 
@@ -543,6 +562,7 @@ const App = () => {
             });
         };
 
+        // Load jsPDF then plugin
         loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", "jspdf-script")
             .then(() => {
                 return loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js", "jspdf-autotable-script");
@@ -564,11 +584,13 @@ const App = () => {
 
             setDb(firestoreDb);
 
+            // Listen for auth state
             const unsubscribeAuth = onAuthStateChanged(firebaseAuth, async (user) => {
                 if (user) {
                     setUserId(user.uid);
                     setIsAuthReady(true);
                 } else {
+                    // Try custom token, else anonymous
                     if (initialAuthToken) {
                         try {
                             await signInWithCustomToken(firebaseAuth, initialAuthToken);
@@ -620,8 +642,11 @@ const App = () => {
         }
     }, [db, isAuthReady, appId, userId]);
 
-    // --- Handlers ---
+    // --- HANDLERS: Cart management -------------------------------------
+
+    // Add an item to the cart or increment quantity if it already exists
     const handleAddToCart = (item) => {
+        // Find existing item index
         const existingItemIndex = cart.findIndex(cartItem => cartItem.item.id === item.id);
         if (existingItemIndex > -1) {
             const updatedCart = [...cart];
@@ -633,11 +658,13 @@ const App = () => {
         setMessage(`${item.name} added to cart.`);
     };
 
+    // Remove an item entirely from the cart
     const handleRemoveFromCart = (itemId) => {
         setCart(cart.filter(cartItem => cartItem.item.id !== itemId));
         setMessage('Item removed from cart.');
     };
 
+    // Update quantity or remove if set to zero or below
     const handleUpdateCartQuantity = (itemId, newQuantity) => {
         if (newQuantity <= 0) {
             handleRemoveFromCart(itemId);
@@ -648,11 +675,14 @@ const App = () => {
         ));
     };
 
+    // --- HANDLER: Generate PDF Quote ----------------------------------
     const handleGetQuote = async () => {
+       // Ensure PDF scripts are loaded
         if (!scriptsLoaded) {
             setMessage("PDF generation library is still loading. Please try again in a moment.");
             return;
         }
+        // Validate form & cart
         if (!companyName || !userName || !address || !email) {
             setMessage('Please fill out all client information fields.');
             return;
@@ -666,16 +696,19 @@ const App = () => {
             return;
         }
         
+        // jsPDF initialization
         const { jsPDF } = window.jspdf; // This is the beginning of the PDF quote configuration.
         const doc = new jsPDF();
-        
+
+        // Draw dark background
         const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.get('height');
         const pageWidth = doc.internal.pageSize.width || doc.internal.pageSize.get('width');
-
-        doc.setTextColor(255, 255, 255); // white text for pdf document
-
         doc.setFillColor(17, 24, 39); // RGB color for PDF background
         doc.rect(0, 0, pageWidth, pageHeight, 'F'); // 'F' stands for fill
+       
+       
+        // Header: Company name & address
+        doc.setTextColor(255, 255, 255); // white text for pdf document
 
         doc.setFont('Nitti-Normal', 'normal');
         doc.setFontSize(20);
@@ -688,6 +721,7 @@ const App = () => {
         doc.text("Phone: (310) 555-1234", pageWidth - 15, 36, { align: 'right' });
         doc.text("contact@leftyscamera.com", pageWidth - 15, 41, { align: 'right' });
 
+        // Client "INVOICE TO"
         doc.setFontSize(14);
         doc.setFont('Nitti-Normal', 'bold');
         doc.text("INVOICE TO:", 15, 55);
@@ -699,6 +733,7 @@ const App = () => {
         doc.text(address, 15, 72);
         doc.text(email, 15, 77);
 
+        // Rental dates table
         doc.autoTable({
             startY: 85,
             head: [['Pickup', 'Return', 'Billed Days']],
@@ -708,6 +743,7 @@ const App = () => {
             headStyles: { fillColor: [55, 65, 81] },
         });
 
+        // Equipment items table
         const tableColumn = ["Qty", "Description", "Serial(s)", "Rate/Day", "Replace", "Total"];
         const tableRows = [];
         let subtotal = 0;
@@ -731,6 +767,7 @@ const App = () => {
 
         let finalY = doc.autoTable.previous.finalY;
 
+        // Pricing note (weekend/discount explanation)
         if (explanation) {
             doc.setFontSize(9);
             doc.setFont('Nitti-Normal', 'italic');
@@ -738,6 +775,7 @@ const App = () => {
             finalY += 5;
         }
 
+        // Subtotal, tax, total
         const tax = subtotal * 0.0825;
         const total = subtotal + tax;
         
@@ -753,14 +791,17 @@ const App = () => {
         doc.text("TOTAL:", 150, finalY + 20, { align: 'right' });
         doc.text(`$${total.toFixed(2)}`, pageWidth - 15, finalY + 20, { align: 'right' });
         
+        // Footer note
         doc.setFontSize(8);
         doc.text("Thank you for your business! Please make all checks payable to Lefty's Camera Rental.", 15, pageHeight - 10);
         
+        // Trigger download
         doc.save('Lefty_Rental_Quote.pdf');
         
         setMessage('Quote PDF has been downloaded.');
-    }; //This is the end of the PDF Quote configuration.
+}; // End of quote of configuration
 
+    // --- UTILITY: Cart total calculation -------------------------------
     const calculateCartTotal = () => {
         return cart.reduce((total, cartItem) => {
             const itemCost = cartItem.item.baseRentalRatePerDay * billedDays * cartItem.quantity;
@@ -768,6 +809,7 @@ const App = () => {
         }, 0);
     };
 
+    // --- SAMPLE DATA SEEDING: For testing -----------------------------
     const addSampleEquipmentData = async () => {
         if (!db || !userId || !isAuthReady) {
             setMessage('Firebase not fully initialized. Please wait a moment.');
@@ -795,6 +837,7 @@ const App = () => {
         }
     };
 
+    // --- RENDER: JSX Layout --------------------------------------------
     return (
         <>
             <Style />
